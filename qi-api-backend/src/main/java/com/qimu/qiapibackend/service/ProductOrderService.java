@@ -24,6 +24,8 @@ public interface ProductOrderService extends IService<ProductOrder> {
      */
     ProductOrderVo saveProductOrder(Long productId, UserVO loginUser);
 
+    ProductOrderVo saveProductOrderFree(Long productId, UserVO loginUser);
+
     /**
      * 更新产品订单
      *
@@ -89,4 +91,6 @@ public interface ProductOrderService extends IService<ProductOrder> {
      * @return {@link String}
      */
     String doPaymentNotify(String notifyData, HttpServletRequest request);
+
+    boolean freePay(String orderNo, UserVO userVO);
 }

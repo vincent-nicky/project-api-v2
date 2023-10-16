@@ -14,6 +14,7 @@ import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.binarywang.wxpay.bean.result.WxPayOrderQueryV3Result;
 import com.ijpay.alipay.AliPayApi;
@@ -166,6 +167,68 @@ public class AlipayOrderServiceImpl extends ServiceImpl<ProductOrderMapper, Prod
     }
 
     @Override
+    public ProductOrderVo saveProductOrderFree(Long productId, UserVO loginUser) {
+        ProductInfo productInfo = productInfoService.getById(productId);
+        if (productInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品不存在");
+        }
+        // 5分钟有效期
+        Date date = DateUtil.date(System.currentTimeMillis());
+        Date expirationTime = DateUtil.offset(date, DateField.MINUTE, 5);
+        String orderNo = ORDER_PREFIX + RandomUtil.randomNumbers(20);
+
+        ProductOrder productOrder = new ProductOrder();
+        productOrder.setUserId(loginUser.getId());
+        productOrder.setOrderNo(orderNo);
+        productOrder.setProductId(productInfo.getId());
+        productOrder.setOrderName(productInfo.getName());
+        productOrder.setTotal(productInfo.getTotal());
+        productOrder.setStatus(PaymentStatusEnum.NOTPAY.getValue());
+        productOrder.setPayType(ALIPAY.getValue());
+        productOrder.setExpirationTime(expirationTime);
+        productOrder.setProductInfo(JSONUtil.toJsonPrettyStr(productInfo));
+        productOrder.setAddPoints(productInfo.getAddPoints());
+
+        boolean saveResult = this.save(productOrder);
+
+        // 构建跟踪订单的模型 拿到支付宝订单体（0元购就不需要了，随便设置一个）
+//        AlipayTradePagePayModel model = new AlipayTradePagePayModel();
+//        model.setOutTradeNo(orderNo);
+//        model.setSubject(productInfo.getName());
+//        model.setProductCode("FAST_INSTANT_TRADE_PAY");
+//        // 金额四舍五入
+//        BigDecimal scaledAmount = new BigDecimal(productInfo.getTotal()).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+//        model.setTotalAmount(String.valueOf(scaledAmount));
+//        model.setBody(productInfo.getDescription());
+//
+//        AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
+//        request.setBizModel(model);
+//        request.setNotifyUrl(aliPayAccountConfig.getNotifyUrl());
+//        request.setReturnUrl(aliPayAccountConfig.getReturnUrl());
+//
+//        // 发送订单
+//        try {
+//            AlipayTradePagePayResponse alipayTradePagePayResponse = AliPayApi.pageExecute(request);
+//            String payUrl = alipayTradePagePayResponse.getBody();
+//            productOrder.setFormData(payUrl);
+//        } catch (AlipayApiException e) {
+//            throw new RuntimeException(e);
+//        }
+
+        productOrder.setFormData("kuai-le-0-yuan-gou");
+        boolean updateResult = this.updateProductOrder(productOrder);
+        if (!updateResult & !saveResult) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR);
+        }
+        // 构建vo
+        ProductOrderVo productOrderVo = new ProductOrderVo();
+        BeanUtils.copyProperties(productOrder, productOrderVo);
+        productOrderVo.setProductInfo(productInfo);
+        productOrderVo.setTotal(productInfo.getTotal().toString());
+        return productOrderVo;
+    }
+
+    @Override
     public boolean updateProductOrder(ProductOrder productOrder) {
         String formData = productOrder.getFormData();
         Long id = productOrder.getId();
@@ -197,6 +260,7 @@ public class AlipayOrderServiceImpl extends ServiceImpl<ProductOrderMapper, Prod
     public ProductOrder getProductOrderByOutTradeNo(String outTradeNo) {
         LambdaQueryWrapper<ProductOrder> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.eq(ProductOrder::getOrderNo, outTradeNo);
+//        queryWrapper.eq("orderNo", outTradeNo);
         return this.getOne(lambdaQueryWrapper);
     }
 
@@ -302,6 +366,27 @@ public class AlipayOrderServiceImpl extends ServiceImpl<ProductOrderMapper, Prod
             }
             return doAliPayOrderBusinessResult;
         });
+    }
+
+    @Override
+    public boolean freePay(String orderNo, UserVO userVO) {
+        try {
+            // 获取订单信息
+            LambdaQueryWrapper<ProductOrder> lqw = new LambdaQueryWrapper<>();
+            lqw.eq(ProductOrder::getOrderNo,orderNo);
+            ProductOrder productOrder = this.getOne(lqw);
+            // 更改订单状态
+            UpdateWrapper<ProductOrder> productOrderUp = new UpdateWrapper<>();
+            productOrderUp.set("status","SUCCESS");
+            this.update(productOrderUp);
+            // 添加金币
+            UpdateWrapper<User> userUp = new UpdateWrapper<>();
+            userUp.set("balance", productOrder.getAddPoints()+userVO.getBalance());
+            userService.update(userUp);
+            return true;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR);
+        }
     }
 
     private String checkAlipayOrder(AliPayAsyncResponse response, Map<String, String> params) throws AlipayApiException {

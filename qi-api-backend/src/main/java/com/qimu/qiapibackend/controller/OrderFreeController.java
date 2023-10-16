@@ -11,10 +11,12 @@ import com.qimu.qiapibackend.model.dto.pay.PayCreateRequest;
 import com.qimu.qiapibackend.model.dto.productorder.ProductOrderQueryRequest;
 import com.qimu.qiapibackend.model.entity.ProductInfo;
 import com.qimu.qiapibackend.model.entity.ProductOrder;
+import com.qimu.qiapibackend.model.entity.User;
 import com.qimu.qiapibackend.model.enums.PaymentStatusEnum;
 import com.qimu.qiapibackend.model.vo.OrderVo;
 import com.qimu.qiapibackend.model.vo.ProductOrderVo;
 import com.qimu.qiapibackend.model.vo.UserVO;
+import com.qimu.qiapibackend.service.OrderFreeService;
 import com.qimu.qiapibackend.service.OrderService;
 import com.qimu.qiapibackend.service.ProductOrderService;
 import com.qimu.qiapibackend.service.UserService;
@@ -45,14 +47,14 @@ import static com.qimu.qiapibackend.model.enums.PaymentStatusEnum.SUCCESS;
  */
 @RestController
 @Slf4j
-@RequestMapping("/order")
-public class OrderController {
+@RequestMapping("/order/free")
+public class OrderFreeController {
     @Resource
     private UserService userService;
     @Resource
     private ProductOrderService productOrderService;
     @Resource
-    private OrderService orderService;
+    private OrderFreeService orderFreeService;
     @Resource
     private RedisTemplate<String, Boolean> redisTemplate;
 
@@ -73,28 +75,28 @@ public class OrderController {
         if (productOrder == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
         }
-        ProductOrderService orderServiceByPayType = orderService.getProductOrderServiceByPayType(productOrder.getPayType());
+        ProductOrderService orderServiceByPayType = orderFreeService.getProductOrderServiceByPayType(productOrder.getPayType());
         boolean closedResult = orderServiceByPayType.updateOrderStatusByOrderNo(orderNo, PaymentStatusEnum.CLOSED.getValue());
         return ResultUtils.success(closedResult);
     }
 
-    @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteProductOrder(String id, HttpServletRequest request) {
-        if (StringUtils.isBlank(id)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        UserVO loginUser = userService.getLoginUser(request);
-        // 校验数据是否存在
-        ProductOrder productOrder = productOrderService.getById(id);
-        if (productOrder == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        // 仅本人或管理员可删除
-        if (!productOrder.getUserId().equals(loginUser.getId()) && !userService.isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        return ResultUtils.success(productOrderService.removeById(id));
-    }
+//    @PostMapping("/delete")
+//    public BaseResponse<Boolean> deleteProductOrder(int id, HttpServletRequest request) {
+//        if (id <= 0) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        UserVO loginUser = userService.getLoginUser(request);
+//        // 校验数据是否存在
+//        ProductOrder productOrder = productOrderService.getById(id);
+//        if (productOrder == null) {
+//            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+//        }
+//        // 仅本人或管理员可删除
+//        if (!productOrder.getUserId().equals(loginUser.getId()) && !userService.isAdmin(request)) {
+//            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+//        }
+//        return ResultUtils.success(productOrderService.removeById(id));
+//    }
 
     /**
      * 按id获取产品订单
@@ -120,14 +122,14 @@ public class OrderController {
      *
      * @param productOrderQueryRequest 接口信息查询请求
      * @param request                  请求
-     * @return {@link BaseResponse}<{@link Page}<{@link com.qimu.qiapibackend.model.entity.ProductOrder}>>
+     * @return {@link BaseResponse}<{@link Page}<{@link ProductOrder}>>
      */
     @GetMapping("/list/page")
     public BaseResponse<OrderVo> listProductOrderByPage(ProductOrderQueryRequest productOrderQueryRequest, HttpServletRequest request) {
         if (productOrderQueryRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        com.qimu.qiapibackend.model.entity.ProductOrder productOrder = new com.qimu.qiapibackend.model.entity.ProductOrder();
+        ProductOrder productOrder = new ProductOrder();
         BeanUtils.copyProperties(productOrderQueryRequest, productOrder);
         long size = productOrderQueryRequest.getPageSize();
         String orderName = productOrderQueryRequest.getOrderName();
@@ -179,13 +181,18 @@ public class OrderController {
         if (ObjectUtils.anyNull(payCreateRequest) || StringUtils.isBlank(payCreateRequest.getProductId())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+
+        // 产品id、支付方式、登录的用户
         Long productId = Long.valueOf(payCreateRequest.getProductId());
         String payType = payCreateRequest.getPayType();
         if (StringUtils.isBlank(payType)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "暂无该支付方式");
         }
         UserVO loginUser = userService.getLoginUser(request);
-        ProductOrderVo productOrderVo = orderService.createOrderByPayType(productId, payType, loginUser);
+
+        // 开始创建订单
+        ProductOrderVo productOrderVo = orderFreeService.createOrderByPayType(productId, payType, loginUser);
+
         if (productOrderVo == null) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "订单创建失败，请稍后再试");
         }
@@ -201,16 +208,43 @@ public class OrderController {
      */
     @PostMapping("/query/status")
     public BaseResponse<Boolean> queryOrderStatus(@RequestBody ProductOrderQueryRequest productOrderQueryRequest) {
+
         if (ObjectUtils.isEmpty(productOrderQueryRequest) || StringUtils.isBlank(productOrderQueryRequest.getOrderNo())) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        // 从redis中查看是否有该订单
         String orderNo = productOrderQueryRequest.getOrderNo();
         Boolean data = redisTemplate.opsForValue().get(QUERY_ORDER_STATUS + orderNo);
-        if (Boolean.FALSE.equals(data)) {
+        if (Boolean.FALSE.equals(data)) { // 注意这里是包装类Boolean
             return ResultUtils.success(data);
         }
+        // 从数据库中查询订单是否支付成功
         ProductOrder productOrder = productOrderService.getProductOrderByOutTradeNo(orderNo);
         if (SUCCESS.getValue().equals(productOrder.getStatus())) {
+            return ResultUtils.success(true);
+        }
+        redisTemplate.opsForValue().set(QUERY_ORDER_STATUS + orderNo, false, 5, TimeUnit.MINUTES);
+        return ResultUtils.success(false);
+    }
+
+    @PostMapping("/query/freePay")
+    public BaseResponse<Boolean> freePay(@RequestBody ProductOrderQueryRequest productOrderQueryRequest,HttpServletRequest request) {
+
+        if (ObjectUtils.isEmpty(productOrderQueryRequest) || StringUtils.isBlank(productOrderQueryRequest.getOrderNo())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 从redis中查看是否有该订单
+        String orderNo = productOrderQueryRequest.getOrderNo();
+        Boolean data = redisTemplate.opsForValue().get(QUERY_ORDER_STATUS + orderNo);
+        if (Boolean.FALSE.equals(data)) { // 注意这里是包装类 Boolean
+            return ResultUtils.success(data);
+        }
+        // o元购
+        UserVO loginUser = userService.getLoginUser(request);
+        boolean freePayRes = productOrderService.freePay(orderNo,loginUser);
+        if (freePayRes) {
+            // 清楚redis的缓存
+            redisTemplate.opsForValue().getOperations().delete(QUERY_ORDER_STATUS + orderNo);
             return ResultUtils.success(true);
         }
         redisTemplate.opsForValue().set(QUERY_ORDER_STATUS + orderNo, false, 5, TimeUnit.MINUTES);
@@ -228,7 +262,7 @@ public class OrderController {
 
     @PostMapping("/notify/order")
     public String parseOrderNotifyResult(@RequestBody String notifyData, HttpServletRequest request) {
-        return orderService.doOrderNotify(notifyData, request);
+        return orderFreeService.doOrderNotify(notifyData, request);
     }
 
     private ProductOrderVo formatProductOrderVo(ProductOrder productOrder) {

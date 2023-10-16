@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
 import com.github.binarywang.wxpay.bean.notify.WxPayOrderNotifyV3Result;
@@ -171,6 +172,62 @@ public class WxOrderServiceImpl extends ServiceImpl<ProductOrderMapper, ProductO
         } catch (WxPayException e) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, e.getMessage());
         }
+        // 构建vo
+        ProductOrderVo productOrderVo = new ProductOrderVo();
+        BeanUtils.copyProperties(productOrder, productOrderVo);
+        productOrderVo.setProductInfo(productInfo);
+        productOrderVo.setTotal(productInfo.getTotal().toString());
+        return productOrderVo;
+    }
+
+    @Override
+    public ProductOrderVo saveProductOrderFree(Long productId, UserVO loginUser) {
+        ProductInfo productInfo = productInfoService.getById(productId);
+        if (productInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品不存在");
+        }
+        // 5分钟有效期
+        Date date = DateUtil.date(System.currentTimeMillis());
+        Date expirationTime = DateUtil.offset(date, DateField.MINUTE, 5);
+        String orderNo = ORDER_PREFIX + RandomUtil.randomNumbers(20);
+        ProductOrder productOrder = new ProductOrder();
+        productOrder.setUserId(loginUser.getId());
+        productOrder.setOrderNo(orderNo);
+        productOrder.setProductId(productInfo.getId());
+        productOrder.setOrderName(productInfo.getName());
+        productOrder.setTotal(productInfo.getTotal());
+        productOrder.setStatus(NOTPAY.getValue());
+        productOrder.setPayType(WX.getValue());
+        productOrder.setExpirationTime(expirationTime);
+        productOrder.setProductInfo(JSONUtil.toJsonPrettyStr(productInfo));
+        productOrder.setAddPoints(productInfo.getAddPoints());
+        boolean saveResult = this.save(productOrder);
+
+        // 构建支付请求
+//        WxPayUnifiedOrderV3Request wxPayRequest = new WxPayUnifiedOrderV3Request();
+//        WxPayUnifiedOrderV3Request.Amount amount = new WxPayUnifiedOrderV3Request.Amount();
+//        amount.setTotal(productOrder.getTotal());
+//        wxPayRequest.setAmount(amount);
+//        wxPayRequest.setDescription(productOrder.getOrderName());
+//        // 设置订单的过期时间为5分钟
+//        String format = DateUtil.format(expirationTime, "yyyy-MM-dd'T'HH:mm:ssXXX");
+//        wxPayRequest.setTimeExpire(format);
+//        wxPayRequest.setOutTradeNo(productOrder.getOrderNo());
+//        try {
+//            String codeUrl = wxPayService.createOrderV3(TradeTypeEnum.NATIVE, wxPayRequest);
+//            if (StringUtils.isBlank(codeUrl)) {
+//                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+//            }
+//            productOrder.setCodeUrl(codeUrl);
+//            // 更新微信订单的二维码,不用重复创建
+//            boolean updateResult = this.updateProductOrder(productOrder);
+//            if (!updateResult & !saveResult) {
+//                throw new BusinessException(ErrorCode.OPERATION_ERROR);
+//            }
+//        } catch (WxPayException e) {
+//            throw new BusinessException(ErrorCode.OPERATION_ERROR, e.getMessage());
+//        }
+
         // 构建vo
         ProductOrderVo productOrderVo = new ProductOrderVo();
         BeanUtils.copyProperties(productOrder, productOrderVo);
@@ -346,6 +403,27 @@ public class WxOrderServiceImpl extends ServiceImpl<ProductOrderMapper, ProductO
                 System.out.println("unLock: " + Thread.currentThread().getId());
                 rLock.unlock();
             }
+        }
+    }
+
+    @Override
+    public boolean freePay(String orderNo, UserVO userVO) {
+        try {
+            // 获取订单信息
+            LambdaQueryWrapper<ProductOrder> lqw = new LambdaQueryWrapper<>();
+            lqw.eq(ProductOrder::getOrderNo,orderNo);
+            ProductOrder productOrder = this.getOne(lqw);
+            // 更改订单状态
+            UpdateWrapper<ProductOrder> productOrderUp = new UpdateWrapper<>();
+            productOrderUp.set("status","SUCCESS");
+            this.update(productOrderUp);
+            // 添加金币
+            UpdateWrapper<User> userUp = new UpdateWrapper<>();
+            userUp.set("balance", productOrder.getAddPoints()+userVO.getBalance());
+            userService.update(userUp);
+            return true;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR);
         }
     }
 
