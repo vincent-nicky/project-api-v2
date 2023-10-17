@@ -3,18 +3,26 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.qimu</groupId>
         <artifactId>qi-api</artifactId>
         <version>0.0.1</version>
-        <relativePath/> <!-- lookup parent from repository -->
     </parent>
+
     <artifactId>qi-api-backend</artifactId>
     <version>0.0.1</version>
     <name>qi-api-backend</name>
-    <description>Qi-API 接口开放平台</description>
+    <description>Vn-API 接口开放平台</description>
 
     <dependencies>
+
+        <!-- https://mvnrepository.com/artifact/com.konghq/unirest-java -->
+        <dependency>
+            <groupId>com.konghq</groupId>
+            <artifactId>unirest-java</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo</artifactId>
@@ -31,37 +39,45 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/com.github.javen205/IJPay-AliPay -->
         <dependency>
             <groupId>com.github.javen205</groupId>
             <artifactId>IJPay-AliPay</artifactId>
             <version>2.9.5</version>
         </dependency>
+
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.qcloud</groupId>
             <artifactId>cos_api</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.github.binarywang</groupId>
             <artifactId>weixin-java-pay</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
         </dependency>
+
         <dependency>
             <groupId>com.qimuu</groupId>
             <artifactId>qi-api-sdk</artifactId>
             <version>0.0.4</version>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>

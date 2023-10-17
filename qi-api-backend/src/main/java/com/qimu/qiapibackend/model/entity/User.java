@@ -61,6 +61,10 @@ public class User implements Serializable {
      */
     private String userAvatar;
     /**
+     * smms
+     */
+    private String avatarHash;
+    /**
      * 性别
      */
     private String gender;

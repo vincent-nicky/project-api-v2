@@ -10,13 +10,17 @@ import com.qimu.qiapibackend.annotation.AuthCheck;
 import com.qimu.qiapibackend.common.*;
 import com.qimu.qiapibackend.config.EmailConfig;
 import com.qimu.qiapibackend.exception.BusinessException;
+import com.qimu.qiapibackend.manager.CosSmmsManager;
 import com.qimu.qiapibackend.model.dto.user.*;
 import com.qimu.qiapibackend.model.entity.User;
+import com.qimu.qiapibackend.model.enums.ImageStatusEnum;
 import com.qimu.qiapibackend.model.enums.UserAccountStatusEnum;
+import com.qimu.qiapibackend.model.vo.ImageVo;
 import com.qimu.qiapibackend.model.vo.UserVO;
 import com.qimu.qiapibackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -24,12 +28,17 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -57,6 +66,9 @@ public class UserController {
 
     @Resource
     private RedisTemplate<String, String> redisTemplate;
+
+    @Resource
+    private CosSmmsManager cosSmmsManager;
 
     // region 登录相关
 
@@ -274,52 +286,6 @@ public class UserController {
     }
 
     /**
-     * 更新用户
-     *
-     * @param userUpdateRequest 用户更新请求
-     * @param request           请求
-     * @return {@link BaseResponse}<{@link User}>
-     */
-    @PostMapping("/update")
-    @Transactional(rollbackFor = Exception.class)
-    public BaseResponse<UserVO> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
-        if (ObjectUtils.anyNull(userUpdateRequest, userUpdateRequest.getId()) || userUpdateRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-
-        // 管理员才能操作
-        boolean adminOperation = ObjectUtils.isNotEmpty(userUpdateRequest.getBalance())
-                || StringUtils.isNoneBlank(userUpdateRequest.getUserRole())
-                || StringUtils.isNoneBlank(userUpdateRequest.getUserPassword());
-        // 校验是否登录
-        UserVO loginUser = userService.getLoginUser(request);
-        // 处理管理员业务,不是管理员抛异常
-        if (adminOperation && !loginUser.getUserRole().equals(ADMIN_ROLE)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-
-        if (!loginUser.getUserRole().equals(ADMIN_ROLE) && !userUpdateRequest.getId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有本人或管理员可以修改");
-        }
-
-        User user = new User();
-        BeanUtils.copyProperties(userUpdateRequest, user);
-        // 参数校验
-        userService.validUser(user, false);
-
-        LambdaUpdateWrapper<User> userLambdaUpdateWrapper = new LambdaUpdateWrapper<>();
-        userLambdaUpdateWrapper.eq(User::getId, user.getId());
-
-        boolean result = userService.update(user, userLambdaUpdateWrapper);
-        if (!result) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "更新失败");
-        }
-        UserVO userVO = new UserVO();
-        BeanUtils.copyProperties(userService.getById(user.getId()), userVO);
-        return ResultUtils.success(userVO);
-    }
-
-    /**
      * 根据 id 获取用户
      *
      * @param id      id
@@ -401,6 +367,52 @@ public class UserController {
         return ResultUtils.success(userVoPage);
     }
 
+    /**
+     * 更新用户
+     *
+     * @param userUpdateRequest 用户更新请求
+     * @param request           请求
+     * @return {@link BaseResponse}<{@link User}>
+     */
+    @PostMapping("/update")
+    @Transactional(rollbackFor = Exception.class)
+    public BaseResponse<UserVO> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
+        if (ObjectUtils.anyNull(userUpdateRequest, userUpdateRequest.getId()) || userUpdateRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // 管理员才能操作
+        boolean adminOperation = ObjectUtils.isNotEmpty(userUpdateRequest.getBalance())
+                || StringUtils.isNoneBlank(userUpdateRequest.getUserRole())
+                || StringUtils.isNoneBlank(userUpdateRequest.getUserPassword());
+        // 校验是否登录
+        UserVO loginUser = userService.getLoginUser(request);
+        // 处理管理员业务,不是管理员抛异常
+        if (adminOperation && !loginUser.getUserRole().equals(ADMIN_ROLE)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+
+        if (!loginUser.getUserRole().equals(ADMIN_ROLE) && !userUpdateRequest.getId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有本人或管理员可以修改");
+        }
+
+        User user = new User();
+        BeanUtils.copyProperties(userUpdateRequest, user);
+        // 参数校验
+        userService.validUser(user, false);
+
+        LambdaUpdateWrapper<User> userLambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        userLambdaUpdateWrapper.eq(User::getId, user.getId());
+
+        boolean result = userService.update(user, userLambdaUpdateWrapper);
+        if (!result) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "更新失败");
+        }
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(userService.getById(user.getId()), userVO);
+        return ResultUtils.success(userVO);
+    }
+
     @PostMapping("/update/voucher")
     public BaseResponse<UserVO> updateVoucher(HttpServletRequest request) {
         if (request == null) {
@@ -411,6 +423,55 @@ public class UserController {
         BeanUtils.copyProperties(loginUser, user);
         UserVO userVO = userService.updateVoucher(user);
         return ResultUtils.success(userVO);
+    }
+
+    @PostMapping("/update/avatar")
+    public BaseResponse<ImageVo> updateVoucher(@RequestPart("file") MultipartFile multipartFile, HttpServletRequest request) {
+        if (multipartFile == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+
+        // multipartFile转file
+        File file;
+        try {
+            file = File.createTempFile("tempfile", multipartFile.getOriginalFilename());
+            // 使用字节数组来存储 MultipartFile 的内容
+            byte[] buffer = new byte[1024];
+            try (FileOutputStream fos = new FileOutputStream(file);
+                 InputStream is = multipartFile.getInputStream()) {
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                }
+            }
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文件转换失败");
+        }
+
+        Map<String, Object> resultMap;
+        try {
+            resultMap = cosSmmsManager.uploadImg(file);
+            // 删除原来的图片
+            UserVO userVO = userService.getLoginUser(request);
+            cosSmmsManager.deleteImg(userVO.getAvatarHash());
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "头像更新失败");
+        }
+        if ((boolean) resultMap.get("success")) {
+            String avatarUrl = (String) resultMap.get("url");
+            String imgHash = (String) resultMap.get("hash");
+            userService.userUpdateAvatar(avatarUrl, imgHash);
+            // 根据前端需要构造返回
+            ImageVo imageVo = new ImageVo();
+            imageVo.setName(multipartFile.getOriginalFilename());
+            imageVo.setUid((String) resultMap.get("hash"));
+            imageVo.setStatus(ImageStatusEnum.SUCCESS.getValue());
+            imageVo.setUrl(avatarUrl);
+            return ResultUtils.success(imageVo);
+        } else {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "图床中存在与 上传图片 相同的图片！");
+        }
+
     }
 
     /**

@@ -3,12 +3,14 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <packaging>pom</packaging>
     <groupId>com.qimu</groupId>
     <artifactId>qi-api</artifactId>
     <version>0.0.1</version>
+
     <name>qi-api</name>
-    <description>Qi-API 接口开放平台</description>
+    <description>Vn-API 接口开放平台</description>
 
     <properties>
         <spring-boot-dependencies.version>2.7.0</spring-boot-dependencies.version>
@@ -28,6 +30,7 @@
         <dubbo.version>3.0.9</dubbo.version>
         <qi-api-common.version>0.0.1</qi-api-common.version>
         <nacos-client.version>2.1.0</nacos-client.version>
+        <unirest-java.version>3.14.5</unirest-java.version>
     </properties>
 
     <modules>
@@ -36,6 +39,7 @@
         <module>qi-api-gateway</module>
         <module>qi-api-common</module>
         <module>qi-api-sdk</module>
+        <module>api-client-sdk</module>
     </modules>
 
     <dependencyManagement>
@@ -45,11 +49,20 @@
                 <artifactId>qi-api-common</artifactId>
                 <version>${qi-api-common.version}</version>
             </dependency>
+
+            <!-- https://mvnrepository.com/artifact/com.konghq/unirest-java -->
+            <dependency>
+                <groupId>com.konghq</groupId>
+                <artifactId>unirest-java</artifactId>
+                <version>${unirest-java.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.apache.dubbo</groupId>
                 <artifactId>dubbo</artifactId>
                 <version>${dubbo.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.alibaba.nacos</groupId>
                 <artifactId>nacos-client</artifactId>

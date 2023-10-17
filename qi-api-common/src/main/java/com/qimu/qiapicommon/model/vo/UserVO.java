@@ -51,6 +51,11 @@ public class UserVO implements Serializable {
     private String userAvatar;
 
     /**
+     * smms
+     */
+    private String avatarHash;
+
+    /**
      * 访问密钥
      */
     private String accessKey;

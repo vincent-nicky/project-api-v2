@@ -24,10 +24,10 @@ spring:
     password: 123456
   #  邮箱配置 todo 修改为自己的邮箱发送配置
   mail:
-    host: smtp.qq.com
-    username: 2483482026@qq.com
-    password: xxxxxxxxxxxxxxxx
-    emailFrom: 2483482026@qq.com
+    host: smtp.163.com
+    username: 17875806323@163.com
+    password: YYBQEFEUWMVQUPGT
+    emailFrom: 17875806323@163.com
     properties:
       mail:
         smtp:
@@ -52,7 +52,7 @@ mybatis-plus:
       logic-delete-value: 1 # 逻辑已删除值(默认为 1)
       logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
 
-# Qi-API-SDK 配置，如需使用自己的网关host需修改
+# Vn-API-SDK 配置，如需使用自己的网关host需修改
 qi:
   api:
     client:
@@ -68,6 +68,9 @@ cos:
     secretKey: xxxxxxx
     region: xxxxxxx
     bucket: xxxxxxx
+  smms:
+    url: https://smms.app/api/v2
+    token: wgI3xVvNia3fIdjiVGCB2FdaIujGZKaA
 
 # 微信支付配置
 wx:

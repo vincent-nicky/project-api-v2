@@ -26,10 +26,6 @@ public class UserUpdateRequest implements Serializable {
      */
     private String userAccount;
     /**
-     * 用户头像
-     */
-    private String userAvatar;
-    /**
      * 性别
      */
     private String gender;

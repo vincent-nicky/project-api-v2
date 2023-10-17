@@ -6,7 +6,6 @@
         <groupId>com.qimu</groupId>
         <artifactId>qi-api</artifactId>
         <version>0.0.1</version>
-        <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <artifactId>qi-api-gateway</artifactId>
     <version>0.0.1-SNAPSHOT</version>

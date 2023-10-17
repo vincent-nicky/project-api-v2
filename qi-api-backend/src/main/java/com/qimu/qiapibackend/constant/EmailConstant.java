@@ -31,22 +31,22 @@ public interface EmailConstant {
     /**
      * 电子邮件标题
      */
-    String EMAIL_TITLE = "Qi-API 接口开放平台";
+    String EMAIL_TITLE = "Vn-API 接口开放平台";
 
     /**
      * 电子邮件标题英语
      */
-    String EMAIL_TITLE_ENGLISH = "Qi-API Open Interface Platform";
+    String EMAIL_TITLE_ENGLISH = "Vn-API Open Interface Platform";
 
     /**
      * 平台负责人
      */
-    String PLATFORM_RESPONSIBLE_PERSON = "柒木工作室";
+    String PLATFORM_RESPONSIBLE_PERSON = "Vincent Nicky";
 
     /**
      * 平台地址
      */
-    String PLATFORM_ADDRESS = "<a href='https://api.qimuu.icu/'>请联系我们</a>";
+    String PLATFORM_ADDRESS = "<a>请联系我们</a>";
 
-    String PATH_ADDRESS = "'https://api.qimuu.icu/'";
+    String PATH_ADDRESS = "";
 }

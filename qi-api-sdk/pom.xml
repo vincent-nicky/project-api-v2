@@ -21,7 +21,7 @@
     <artifactId>qi-api-sdk</artifactId>
     <version>0.0.4</version>
 
-    <description>Qi-API 接口开放平台开发者工具包</description>
+    <description>Vn-API 接口开放平台开发者工具包</description>
     <properties>
         <java.version>1.8</java.version>
     </properties>

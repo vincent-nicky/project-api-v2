@@ -5,6 +5,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qimu.qiapibackend.common.ErrorCode;
 import com.qimu.qiapibackend.exception.BusinessException;
@@ -385,6 +386,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         loginUser.setEmail(null);
         return loginUser;
+    }
+
+    @Override
+    public boolean userUpdateAvatar(String imgUrl, String imgHash) {
+        LambdaUpdateWrapper<User> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        lambdaUpdateWrapper.set(User::getUserAvatar, imgUrl);
+        lambdaUpdateWrapper.set(User::getAvatarHash, imgHash);
+        return this.update(lambdaUpdateWrapper);
     }
 
     /**

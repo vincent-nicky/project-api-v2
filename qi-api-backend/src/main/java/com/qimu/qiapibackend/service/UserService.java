@@ -138,4 +138,6 @@ public interface UserService extends IService<User> {
      * @return {@link UserVO}
      */
     UserVO userUnBindEmail(UserUnBindEmailRequest userUnBindEmailRequest, HttpServletRequest request);
+
+    boolean userUpdateAvatar(String imgUrl, String imgHash);
 }

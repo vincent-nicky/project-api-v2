@@ -11,6 +11,7 @@ create table if not exists project_qi_api.user
     userName       varchar(256)                           null comment '用户昵称',
     userAccount    varchar(256)                           not null comment '账号',
     userAvatar     varchar(1024)                          null comment '用户头像',
+    avatarHash     VARCHAR(256)                           null comment 'smms - 图片唯一标识',
     email          varchar(256)                           null comment '邮箱',
     gender         varchar(10)                            null comment '性别 0-男 1-女',
     userRole       varchar(256) default 'user'            not null comment '用户角色：user / admin',
@@ -148,7 +149,7 @@ create table if not exists project_qi_api.recharge_activity
     id         bigint auto_increment comment 'id' primary key,
     userId     bigint                             not null comment '用户id',
     productId  bigint                             not null comment '商品id',
-    orderNo        varchar(256)                           null comment '商户订单号',
+    orderNo    varchar(256)                       null comment '商户订单号',
     createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
     updateTime datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
     isDelete   tinyint  default 0                 not null comment '是否删除'
@@ -157,16 +158,39 @@ create table if not exists project_qi_api.recharge_activity
 
 
 
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1695338876708544514, '100坤币', '增加100坤币到钱包', 1691069533871013889, 1, 100, 'RECHARGEACTIVITY', 1, null, '2023-08-26 15:34:20', '2023-08-28 12:58:30', 0);
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1695773972037839073, '9999坤币', '增加9999坤币到钱包', 1691069533871013889, 699, 9999, 'RECHARGE', 1, '2023-08-28 13:01:34', '2023-08-27 20:35:34', '2023-08-27 20:41:29', 0);
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1695776766919888897, '1000坤币', '增加1000坤币到钱包', 1691069533871013889, 99, 1000, 'RECHARGE', 1, null, '2023-08-27 20:34:21', '2023-08-27 20:34:21', 0);
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1695777072030339073, '3000坤币', '增加3000坤币到钱包', 1691069533871013889, 199, 3000, 'RECHARGE', 1, null, '2023-08-27 20:35:34', '2023-08-27 20:41:29', 0);
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1695777203236556802, '15999坤币', '增加15999坤币到钱包', 1691069533871013889, 888, 15999, 'RECHARGE', 1, null, '2023-08-27 20:36:05', '2023-08-28 13:02:25', 0);
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1695778320091631617, '18999坤币', '增加18999坤币到钱包', 1691069533871013889, 999, 18999, 'RECHARGE', 1, null, '2023-08-27 20:40:32', '2023-08-28 13:02:42', 0);
-INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status, expirationTime, createTime, updateTime, isDelete) VALUES (1697087470134259713, '10坤币', '签到获取', 1692848556158709762, 0, 10, 'RECHARGE', 0, null, '2023-08-31 11:22:37', '2023-08-31 11:22:37', 1);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1695338876708544514, '100坤币', '增加100坤币到钱包', 1691069533871013889, 1, 100, 'RECHARGEACTIVITY', 1, null,
+        '2023-08-26 15:34:20', '2023-08-28 12:58:30', 0);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1695773972037839073, '9999坤币', '增加9999坤币到钱包', 1691069533871013889, 699, 9999, 'RECHARGE', 1,
+        '2023-08-28 13:01:34', '2023-08-27 20:35:34', '2023-08-27 20:41:29', 0);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1695776766919888897, '1000坤币', '增加1000坤币到钱包', 1691069533871013889, 99, 1000, 'RECHARGE', 1, null,
+        '2023-08-27 20:34:21', '2023-08-27 20:34:21', 0);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1695777072030339073, '3000坤币', '增加3000坤币到钱包', 1691069533871013889, 199, 3000, 'RECHARGE', 1, null,
+        '2023-08-27 20:35:34', '2023-08-27 20:41:29', 0);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1695777203236556802, '15999坤币', '增加15999坤币到钱包', 1691069533871013889, 888, 15999, 'RECHARGE', 1, null,
+        '2023-08-27 20:36:05', '2023-08-28 13:02:25', 0);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1695778320091631617, '18999坤币', '增加18999坤币到钱包', 1691069533871013889, 999, 18999, 'RECHARGE', 1, null,
+        '2023-08-27 20:40:32', '2023-08-28 13:02:42', 0);
+INSERT INTO project_qi_api.product_info (id, name, description, userId, total, addPoints, productType, status,
+                                         expirationTime, createTime, updateTime, isDelete)
+VALUES (1697087470134259713, '10坤币', '签到获取', 1692848556158709762, 0, 10, 'RECHARGE', 0, null,
+        '2023-08-31 11:22:37', '2023-08-31 11:22:37', 1);
 
-insert into project_qi_api.interface_info(`id`, `name`, `url`, `userId`, `method`, `requestParams`, `reduceScore`, `requestExample`,
-                                          `requestHeader`, `responseHeader`, `description`, `status`, `totalInvokes`, `avatarUrl`,
+insert into project_qi_api.interface_info(`id`, `name`, `url`, `userId`, `method`, `requestParams`, `reduceScore`,
+                                          `requestExample`,
+                                          `requestHeader`, `responseHeader`, `description`, `status`, `totalInvokes`,
+                                          `avatarUrl`,
                                           `returnFormat`, `responseParams`, `createTime`, `updateTime`, `isDelete`)
 values (1705234447153963010, '随机毒鸡汤', 'http://localhost:8090/api/poisonousChickenSoup', 1698354419367571457, 'GET',
         NULL, 1, 'http://localhost:8090/api/poisonousChickenSoup', NULL, NULL, '随机毒鸡汤', 1, 228, '', 'JSON',
