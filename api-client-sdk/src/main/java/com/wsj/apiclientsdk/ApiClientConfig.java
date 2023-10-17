@@ -22,11 +22,9 @@ public class ApiClientConfig {
 
     private String secretKey;
 
-    private String gatewayUrl;
-
     @Bean
     public MyApiClient apiClient() {
-        return new MyApiClient(accessKey, secretKey, gatewayUrl);
+        return new MyApiClient(accessKey, secretKey);
     }
 
 }

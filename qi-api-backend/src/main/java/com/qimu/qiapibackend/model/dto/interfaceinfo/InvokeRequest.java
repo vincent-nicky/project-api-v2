@@ -17,6 +17,7 @@ public class InvokeRequest implements Serializable {
     private static final long serialVersionUID = 1L;
     private Long id;
     private List<Field> requestParams;
+    private List<Field> requestHeaders;
     private String userRequestParams;
 
     @Data

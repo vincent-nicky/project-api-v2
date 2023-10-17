@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static com.qimu.qiapicommon.model.emums.UserAccountStatusEnum.BAN;
+import static com.wsj.apiclientsdk.utils.SignUtils.genSign;
 import static icu.qimuu.qiapisdk.utils.SignUtils.getSign;
 
 
@@ -125,7 +126,10 @@ public class GatewayGlobalFilter implements GlobalFilter, Ordered {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "该账号已封禁");
             }
             // 校验签名
-            if (!getSign(body, user.getSecretKey()).equals(sign)) {
+//            if (!getSign(body, user.getSecretKey()).equals(sign)) {
+//                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "非法请求");
+//            }
+            if (!genSign(body, user.getSecretKey()).equals(sign)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "非法请求");
             }
             if (user.getBalance() <= 0) {
@@ -155,6 +159,7 @@ public class GatewayGlobalFilter implements GlobalFilter, Ordered {
             if (StringUtils.isNotBlank(requestParams)) {
                 List<RequestParamsField> list = new Gson().fromJson(requestParams, new TypeToken<List<RequestParamsField>>() {
                 }.getType());
+                // TODO 这里如果是多个参数会报错：java.lang.IllegalStateException: Expected a string but was BEGIN_ARRAY at line 1 column 37 path $[0].fieldName)
                 for (RequestParamsField requestParamsField : list) {
                     if ("是".equals(requestParamsField.getRequired())) {
                         if (StringUtils.isBlank(queryParams.getFirst(requestParamsField.getFieldName())) || !queryParams.containsKey(requestParamsField.getFieldName())) {

@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 import com.qimu.qiapibackend.annotation.AuthCheck;
 import com.qimu.qiapibackend.common.*;
 import com.qimu.qiapibackend.constant.CommonConstant;
@@ -18,9 +17,9 @@ import com.qimu.qiapibackend.model.vo.UserVO;
 import com.qimu.qiapibackend.service.InterfaceInfoService;
 import com.qimu.qiapibackend.service.UserService;
 import com.qimu.qiapicommon.model.entity.InterfaceInfo;
-import icu.qimuu.qiapisdk.client.QiApiClient;
-import icu.qimuu.qiapisdk.model.request.CurrencyRequest;
-import icu.qimuu.qiapisdk.model.response.ResultResponse;
+import com.wsj.apiclientsdk.client.MyApiClient;
+import com.wsj.apiclientsdk.exception.ApiException;
+import com.wsj.apiclientsdk.model.ApiDataFieldRequest;
 import icu.qimuu.qiapisdk.service.ApiService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -52,6 +51,9 @@ public class InterfaceInfoController {
     private UserService userService;
     @Resource
     private ApiService apiService;
+
+    @Resource
+    private MyApiClient myApiClient;
 
     private final Gson gson = new Gson();
     // region 增删改查
@@ -352,6 +354,59 @@ public class InterfaceInfoController {
 
     // endregion
 
+    @PostMapping("/invoke")
+    @Transactional(rollbackFor = Exception.class)
+    public BaseResponse<Object> invokeInterface(@RequestBody InvokeRequest invokeRequest, HttpServletRequest request) {
+        if (ObjectUtils.anyNull(invokeRequest, invokeRequest.getId()) || invokeRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 验证是否可调用
+        Long id = invokeRequest.getId();
+        InterfaceInfo interfaceInfo = interfaceInfoService.getById(id);
+        if (interfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "接口不存在");
+        }
+        if (interfaceInfo.getStatus() != InterfaceStatusEnum.ONLINE.getValue()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口未开启");
+        }
+        // begin 构建请求参数
+        UserVO loginUser = userService.getLoginUser(request);
+        String accessKey = loginUser.getAccessKey();
+        String secretKey = loginUser.getSecretKey();
+        ApiDataFieldRequest apiDataFieldRequest = new ApiDataFieldRequest();
+        apiDataFieldRequest.setPath(interfaceInfo.getUrl());
+        apiDataFieldRequest.setMethod(interfaceInfo.getMethod());
+        // TODO 处理请求头的格式
+        List<InvokeRequest.Field> headersList = invokeRequest.getRequestHeaders();
+        String requestHeaders = "{}";
+        if (headersList != null && headersList.size() > 0) {
+            JsonObject jsonObject = new JsonObject();
+            for (InvokeRequest.Field field : headersList) {
+                jsonObject.addProperty(field.getFieldName(), field.getValue());
+            }
+            requestHeaders = gson.toJson(jsonObject);
+        }
+        apiDataFieldRequest.setHeadersJson(requestHeaders);
+        // TODO 处理参数的格式
+        List<InvokeRequest.Field> paramsList = invokeRequest.getRequestParams();
+        String requestParams = "{}";
+        if (paramsList != null && paramsList.size() > 0) {
+            JsonObject jsonObject = new JsonObject();
+            for (InvokeRequest.Field field : paramsList) {
+                jsonObject.addProperty(field.getFieldName(), field.getValue());
+            }
+            requestParams = gson.toJson(jsonObject);
+        }
+        apiDataFieldRequest.setParamsJson(requestParams);
+        // end
+        try {
+            Map<String,Object> resultJson = myApiClient.invokeInterface(accessKey,secretKey, apiDataFieldRequest);
+            return ResultUtils.success(resultJson);
+        } catch (ApiException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
+        }
+    }
+
     /**
      * 调用接口
      *
@@ -359,45 +414,46 @@ public class InterfaceInfoController {
      * @param request       请求
      * @return {@link BaseResponse}<{@link Object}>
      */
-    @PostMapping("/invoke")
-    @Transactional(rollbackFor = Exception.class)
-    public BaseResponse<Object> invokeInterface(@RequestBody InvokeRequest invokeRequest, HttpServletRequest request) {
-        if (ObjectUtils.anyNull(invokeRequest, invokeRequest.getId()) || invokeRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Long id = invokeRequest.getId();
-        InterfaceInfo interfaceInfo = interfaceInfoService.getById(id);
-        if (interfaceInfo == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
-        if (interfaceInfo.getStatus() != InterfaceStatusEnum.ONLINE.getValue()) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口未开启");
-        }
-        // 构建请求参数
-        List<InvokeRequest.Field> fieldList = invokeRequest.getRequestParams();
-        String requestParams = "{}";
-        if (fieldList != null && fieldList.size() > 0) {
-            JsonObject jsonObject = new JsonObject();
-            for (InvokeRequest.Field field : fieldList) {
-                jsonObject.addProperty(field.getFieldName(), field.getValue());
-            }
-            requestParams = gson.toJson(jsonObject);
-        }
-        Map<String, Object> params = new Gson().fromJson(requestParams, new TypeToken<Map<String, Object>>() {
-        }.getType());
-        UserVO loginUser = userService.getLoginUser(request);
-        String accessKey = loginUser.getAccessKey();
-        String secretKey = loginUser.getSecretKey();
-        try {
-            QiApiClient qiApiClient = new QiApiClient(accessKey, secretKey);
-            CurrencyRequest currencyRequest = new CurrencyRequest();
-            currencyRequest.setMethod(interfaceInfo.getMethod());
-            currencyRequest.setPath(interfaceInfo.getUrl());
-            currencyRequest.setRequestParams(params);
-            ResultResponse response = apiService.request(qiApiClient, currencyRequest);
-            return ResultUtils.success(response.getData());
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
-        }
-    }
+//    @PostMapping("/invoke")
+//    @Transactional(rollbackFor = Exception.class)
+//    public BaseResponse<Object> invokeInterface(@RequestBody InvokeRequest invokeRequest, HttpServletRequest request) {
+//        if (ObjectUtils.anyNull(invokeRequest, invokeRequest.getId()) || invokeRequest.getId() <= 0) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
+//        Long id = invokeRequest.getId();
+//        InterfaceInfo interfaceInfo = interfaceInfoService.getById(id);
+//        if (interfaceInfo == null) {
+//            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+//        }
+//        if (interfaceInfo.getStatus() != InterfaceStatusEnum.ONLINE.getValue()) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR, "接口未开启");
+//        }
+//        // 处理请求参数的格式
+//        List<InvokeRequest.Field> fieldList = invokeRequest.getRequestParams();
+//        String requestParams = "{}";
+//        if (fieldList != null && fieldList.size() > 0) {
+//            JsonObject jsonObject = new JsonObject();
+//            for (InvokeRequest.Field field : fieldList) {
+//                jsonObject.addProperty(field.getFieldName(), field.getValue());
+//            }
+//            requestParams = gson.toJson(jsonObject);
+//        }
+//
+//        Map<String, Object> params = new Gson().fromJson(requestParams, new TypeToken<Map<String, Object>>() {
+//        }.getType());
+//        UserVO loginUser = userService.getLoginUser(request);
+//        String accessKey = loginUser.getAccessKey();
+//        String secretKey = loginUser.getSecretKey();
+//        try {
+//            QiApiClient qiApiClient = new QiApiClient(accessKey, secretKey);
+//            CurrencyRequest currencyRequest = new CurrencyRequest();
+//            currencyRequest.setMethod(interfaceInfo.getMethod());
+//            currencyRequest.setPath(interfaceInfo.getUrl());
+//            currencyRequest.setRequestParams(params);
+//            ResultResponse response = apiService.request(qiApiClient, currencyRequest);
+//            return ResultUtils.success(response.getData());
+//        } catch (Exception e) {
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
+//        }
+//    }
 }
