@@ -18,7 +18,6 @@ import com.qimu.qiapibackend.service.InterfaceInfoService;
 import com.qimu.qiapibackend.service.UserService;
 import com.qimu.qiapicommon.model.entity.InterfaceInfo;
 import com.wsj.apiclientsdk.client.MyApiClient;
-import com.wsj.apiclientsdk.exception.ApiException;
 import com.wsj.apiclientsdk.model.ApiDataFieldRequest;
 import icu.qimuu.qiapisdk.service.ApiService;
 import lombok.extern.slf4j.Slf4j;
@@ -399,12 +398,8 @@ public class InterfaceInfoController {
         }
         apiDataFieldRequest.setParamsJson(requestParams);
         // end
-        try {
-            Map<String,Object> resultJson = myApiClient.invokeInterface(accessKey,secretKey, apiDataFieldRequest);
-            return ResultUtils.success(resultJson);
-        } catch (ApiException e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
-        }
+        Map<String,Object> resultJson = myApiClient.invokeInterface(accessKey,secretKey, apiDataFieldRequest);
+        return ResultUtils.success(resultJson);
     }
 
     /**

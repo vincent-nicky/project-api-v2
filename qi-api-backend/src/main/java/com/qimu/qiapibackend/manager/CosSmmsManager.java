@@ -4,9 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
@@ -71,8 +69,7 @@ public class CosSmmsManager {
 
     private Map<String, Object> convertJsonToMap(String json) {
         // 使用TypeToken来保留Map<String, Object>的类型信息
-        Type type = new TypeToken<Map<String, Object>>() {
-        }.getType();
+        Type type = new TypeToken<Map<String, Object>>() {}.getType();
         // 将JSON字符串转换为Map
         return new Gson().fromJson(json, type);
     }

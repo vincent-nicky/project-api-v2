@@ -6,8 +6,6 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.wsj.apiclientsdk.exception.ApiException;
-import com.wsj.apiclientsdk.exception.ErrorCode;
 import com.wsj.apiclientsdk.model.ApiDataFieldRequest;
 
 import java.util.HashMap;
@@ -19,8 +17,6 @@ import static com.wsj.apiclientsdk.utils.SignUtils.genSign;
  * 调用第三方接口的客户端
  */
 public class MyApiClient {
-
-    public static final String GATEWAY_URL = "http://localhost:8090";
     private final String accessKey;
     private final String secretKey;
     private final Gson gson = new Gson();
@@ -30,15 +26,15 @@ public class MyApiClient {
         this.secretKey = secretKey;
     }
 
-    public Map<String, Object> invokeInterface(ApiDataFieldRequest apiDataFieldRequest) throws ApiException {
+    public Map<String, Object> invokeInterface(ApiDataFieldRequest apiDataFieldRequest) {
         return doInvoke(accessKey, secretKey, apiDataFieldRequest);
     }
 
-    public Map<String, Object> invokeInterface(String loginUserAk, String loginUserSk, ApiDataFieldRequest apiDataFieldRequest) throws ApiException {
+    public Map<String, Object> invokeInterface(String loginUserAk, String loginUserSk, ApiDataFieldRequest apiDataFieldRequest) {
         return doInvoke(loginUserAk, loginUserSk, apiDataFieldRequest);
     }
 
-    private Map<String, Object> doInvoke(String loginUserAk, String loginUserSk, ApiDataFieldRequest apiDataFieldRequest) throws ApiException {
+    private Map<String, Object> doInvoke(String loginUserAk, String loginUserSk, ApiDataFieldRequest apiDataFieldRequest) {
         switch (apiDataFieldRequest.getMethod()) {
             case "GET": {
                 // JSON 转 map
@@ -51,7 +47,8 @@ public class MyApiClient {
                 System.out.println("【发送结果】" + httpResponse.getStatus());
                 String result = httpResponse.body();
                 System.out.println("【响应结果】" + result);
-                return gson.fromJson(result, new TypeToken<Map<String, Object>>() {}.getType());
+                return gson.fromJson(result, new TypeToken<Map<String, Object>>() {
+                }.getType());
             }
             case "POST": {
                 HttpResponse httpResponse = HttpRequest.post(apiDataFieldRequest.getPath())
@@ -61,10 +58,11 @@ public class MyApiClient {
                 System.out.println("【发送结果】" + httpResponse.getStatus());
                 String result = httpResponse.body();
                 System.out.println("【响应结果】" + result);
-                return gson.fromJson(result, new TypeToken<Map<String, Object>>() {}.getType());
+                return gson.fromJson(result, new TypeToken<Map<String, Object>>() {
+                }.getType());
             }
             default: {
-                throw new ApiException(ErrorCode.OPERATION_ERROR, "不支持该请求");
+                throw new RuntimeException("不支持的请求");
             }
         }
     }
