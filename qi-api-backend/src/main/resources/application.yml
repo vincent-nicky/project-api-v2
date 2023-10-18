@@ -68,6 +68,8 @@ cos:
     secretKey: xxxxxxx
     region: xxxxxxx
     bucket: xxxxxxx
+# SMMS对象存储
+oss:
   smms:
     url: https://smms.app/api/v2
     token: wgI3xVvNia3fIdjiVGCB2FdaIujGZKaA

@@ -13,11 +13,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class CosSmmsManager {
+public class OssSmmsManager {
 
-    @Value("${cos.smms.url}")
+    @Value("${oss.smms.url}")
     private String url;
-    @Value("${cos.smms.token}")
+    @Value("${oss.smms.token}")
     private String token;
 
     public Map<String, Object> uploadImg(File file) {
@@ -27,14 +27,6 @@ public class CosSmmsManager {
     public Map<String, Object> uploadImg(String filePath) {
         File file = new File(filePath);
         return doUpload(file);
-    }
-
-    public Map<String, Object> deleteImg(String imgHash) {
-        // 使用unirest
-        HttpResponse<String> response = Unirest.get(url + "/delete/" + imgHash)
-                .header("Authorization", token)
-                .asString();
-        return convertJsonToMap(response.getBody());
     }
 
     private Map<String, Object> doUpload(File file) {
@@ -50,21 +42,34 @@ public class CosSmmsManager {
                 .field("smfile", file)
                 .asString();
         // Json转map
-        Map<String, Object> mapSource = convertJsonToMap(response.getBody());
+        Map<String, Object> mapResponse = convertJsonToMap(response.getBody());
         // 根据是否上传成功来构造返回值
         Map<String, Object> result = new HashMap<>();
-        if ((Boolean) mapSource.get("success")) {
-            Map<String, Object> mapData = (Map<String, Object>) mapSource.get("data");
+        if ((Boolean) mapResponse.get("success")) {
+            Map<String, Object> mapData = (Map<String, Object>) mapResponse.get("data");
             result.put("success", true);
             result.put("url", mapData.get("url"));
             result.put("hash", mapData.get("hash"));
             return result;
         } else {
             result.put("success", false);
-            result.put("url", mapSource.get("images"));
-            result.put("message", mapSource.get("code"));
+            result.put("url", mapResponse.get("images"));
+            result.put("message", mapResponse.get("code"));
             return result;
         }
+    }
+
+    public Map<String, Object> deleteImg(String imgHash) {
+        // 使用unirest
+        HttpResponse<String> response = Unirest.get(url + "/delete/" + imgHash)
+                .header("Authorization", token)
+                .asString();
+        Map<String, Object> mapResponse = convertJsonToMap(response.getBody());
+        // 构造返回
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", mapResponse.get("success"));
+        result.put("message", mapResponse.get("message"));
+        return result;
     }
 
     private Map<String, Object> convertJsonToMap(String json) {

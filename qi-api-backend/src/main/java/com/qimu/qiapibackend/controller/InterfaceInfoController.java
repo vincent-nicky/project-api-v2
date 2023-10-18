@@ -375,7 +375,7 @@ public class InterfaceInfoController {
         ApiDataFieldRequest apiDataFieldRequest = new ApiDataFieldRequest();
         apiDataFieldRequest.setPath(interfaceInfo.getUrl());
         apiDataFieldRequest.setMethod(interfaceInfo.getMethod());
-        // TODO 处理请求头的格式
+        // 处理请求头的格式
         List<InvokeRequest.Field> headersList = invokeRequest.getRequestHeaders();
         String requestHeaders = "{}";
         if (headersList != null && headersList.size() > 0) {
@@ -386,7 +386,7 @@ public class InterfaceInfoController {
             requestHeaders = gson.toJson(jsonObject);
         }
         apiDataFieldRequest.setHeadersJson(requestHeaders);
-        // TODO 处理参数的格式
+        // 处理参数的格式
         List<InvokeRequest.Field> paramsList = invokeRequest.getRequestParams();
         String requestParams = "{}";
         if (paramsList != null && paramsList.size() > 0) {

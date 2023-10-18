@@ -10,7 +10,7 @@ import com.qimu.qiapibackend.annotation.AuthCheck;
 import com.qimu.qiapibackend.common.*;
 import com.qimu.qiapibackend.config.EmailConfig;
 import com.qimu.qiapibackend.exception.BusinessException;
-import com.qimu.qiapibackend.manager.CosSmmsManager;
+import com.qimu.qiapibackend.manager.OssSmmsManager;
 import com.qimu.qiapibackend.model.dto.user.*;
 import com.qimu.qiapibackend.model.entity.User;
 import com.qimu.qiapibackend.model.enums.ImageStatusEnum;
@@ -20,7 +20,6 @@ import com.qimu.qiapibackend.model.vo.UserVO;
 import com.qimu.qiapibackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -68,7 +67,7 @@ public class UserController {
     private RedisTemplate<String, String> redisTemplate;
 
     @Resource
-    private CosSmmsManager cosSmmsManager;
+    private OssSmmsManager ossSmmsManager;
 
     // region 登录相关
 
@@ -450,10 +449,10 @@ public class UserController {
 
         Map<String, Object> resultMap;
         try {
-            resultMap = cosSmmsManager.uploadImg(file);
+            resultMap = ossSmmsManager.uploadImg(file);
             // 删除原来的图片
             UserVO userVO = userService.getLoginUser(request);
-            cosSmmsManager.deleteImg(userVO.getAvatarHash());
+            ossSmmsManager.deleteImg(userVO.getAvatarHash());
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "头像更新失败");
         }

@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  *
  */
 @Configuration
-@ConfigurationProperties("api.client")
+@ConfigurationProperties("wsj.api.client")
 @Data
 @ComponentScan
 public class ApiClientConfig {
