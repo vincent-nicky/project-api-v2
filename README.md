@@ -12,7 +12,8 @@
 
 ## 项目流程 🗺️
 
-![image-20231030001617133](https://cdn.jsdelivr.net/gh/vincent-nicky/image_store/blog/image-20231030001617133.png)
+![QiAPI 接口开放平台](https://img.qimuu.icu/typory/QiAPI%2520%25E6%258E%25A5%25E5%258F%25A3%25E5%25BC%2580%25E6%2594%25BE%25E5%25B9%25B3%25E5%258F%25B0.png)
+
 ## 项目选型 🎯
 
 ### **后端**
