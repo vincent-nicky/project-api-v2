@@ -89,10 +89,10 @@ public class OrderFreeServiceImpl implements OrderFreeService {
         redissonLock = ("createOrder_" + loginUser.getUserAccount()).intern();
 
         // 分布式锁工具
-        // 整个代码段使用redissonLockUtil.redissonDistributedLocks()方法来执行这两个操作，该方法使用redissonLock作为锁的标识。
+        // 整段代码使用redissonLockUtil.redissonDistributedLocks()方法来执行这两个操作，该方法使用redissonLock作为锁的标识。
         // 这意味着在分布式环境中，只有一个线程可以同时执行这两个操作，以防止竞争条件和数据不一致性问题。
         return redissonLockUtil.redissonDistributedLocks(redissonLock, () -> {
-            // 检查是否购买充值活动
+            // 检查是否有购买该订单的记录
             checkBuyRechargeActivity(loginUser.getId(), productId);
             // 保存订单,返回vo信息
             return productOrderService.saveProductOrderFree(productId, loginUser);

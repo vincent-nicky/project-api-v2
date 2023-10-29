@@ -6,7 +6,7 @@
 
     <packaging>pom</packaging>
     <groupId>com.qimu</groupId>
-    <artifactId>qi-api</artifactId>
+    <artifactId>project-qi-api</artifactId>
     <version>0.0.1</version>
 
     <name>qi-api</name>

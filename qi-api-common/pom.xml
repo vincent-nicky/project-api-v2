@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.qimu</groupId>
-        <artifactId>qi-api</artifactId>
+        <artifactId>project-qi-api</artifactId>
         <version>0.0.1</version>
     </parent>
     <artifactId>qi-api-common</artifactId>
